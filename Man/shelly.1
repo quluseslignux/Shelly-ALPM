@@ -8,7 +8,7 @@ shelly \- command-line libalpm utility
 .RI [ OPTIONS ] " <COMMAND>"
 
 .SH DESCRIPTION
-shelly is a comand-line interface for managing system packages, 
+Shelly is a comand-line interface for managing system packages,
 syncronizing databases, and performing system maintenance tasks. 
 It provides functionality similar to traditional package managers 
 with extended support for AUR and Flatpak.
@@ -110,14 +110,91 @@ Force the operation, even if it would normally be skipped or blocked.
 .B -n, --no-confirm
 Proceed without asking for user confirmation .
 
-
 .SH AUR OPTIONS
 
+.TP
+.BI  "install-version " "<package> <commit>"
+Install a specific version of an AUR package build by commit hash.
+
+.TP
+.BI "get-package-build " "<packages>"
+Get package build details.
+
 .SH FLATPAK OPTIONS
+
+.TP
+.B running
+List all running flatpak apps.
+
+.TP
+.BI "run " "<package>"
+Run flatpak app.
+
+.TP
+.BI "kill " "<package>"
+Kill running flatpak app.
+
+.TP
+.B sync-remote-appstream
+Sync remote appstream.
+
+.TP
+.B get-remote-appstream
+Returns remote appstream JSON.
+
 
 .\" Now, some examples to finish the explanation - This needs some work still
 
 .SH EXAMPLES
 
+.PP
+Display the current application version:
+.RS
+.B shelly version
+.RE
+
+.PP
+Update all packages in the system.
+.RS
+.B shelly upgrade
+.RE
+
+.PP
+Update all packages in the system, including AUR and Flatpak.
+.RS
+.B shelly upgrade -a
+.RE
+
+.PP
+Synchronize package databases:
+.RS
+.B shelly sync
+.RE
+
+.PP
+List all installed packages:
+.RS
+.B shelly list-installed
+.RE
+
+.PP
+List installed packages sorted by name:
+.RS
+.BR shelly " list-installed --sort name"
+.RE
+
+
 .\" Finishing with author information
-.SH AUTHOR
+.SH AUTHORS
+Zoey Bauer <https://github.com/ZoeyErinBauer>
+.br
+Caroline Snyder <https://github.com/caroberrie>
+.PP
+This manual page was written by: Vinícius Fonseca <https://github.com/VinnyQF>
+
+
+
+
+
+
+
