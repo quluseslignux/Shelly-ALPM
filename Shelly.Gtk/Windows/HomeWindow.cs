@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using GObject.Internal;
 using Gtk;
 using Shelly.Gtk.Helpers;
 using Shelly.Gtk.Services;
@@ -38,7 +37,10 @@ public class HomeWindow(
         totalPackageLabel.OnRealize += (sender, args) => { _ = LoadTotalPackageData(totalPackageLabel, _cts.Token); };
 
         var packagePercentLabel = (Label)builder.GetObject("StandardPercent")!;
-        packagePercentLabel.OnRealize += (sender, args) => { _ = LoadTotalPackagePercentData(packagePercentLabel, _cts.Token); };
+        packagePercentLabel.OnRealize += (sender, args) =>
+        {
+            _ = LoadTotalPackagePercentData(packagePercentLabel, _cts.Token);
+        };
 
         var totalFlatpakLabel = (Label)builder.GetObject("TotalFlatpakLabel")!;
         totalFlatpakLabel.OnRealize += (sender, args) => { _ = LoadTotalFlatpak(totalFlatpakLabel, _cts.Token); };
@@ -262,7 +264,7 @@ public class HomeWindow(
         listView.SetModel(NoSelection.New(store));
         listView.SetFactory(factory);
     }
-    
+
     private static Label FindLabel(Grid grid, string name)
     {
         var child = grid.GetFirstChild();
@@ -272,6 +274,7 @@ public class HomeWindow(
                 return label;
             child = child.GetNextSibling();
         }
+
         throw new Exception($"Label '{name}' not found");
     }
 
@@ -309,11 +312,11 @@ public class HomeWindow(
         date.Halign = Align.End;
         date.AddCssClass("dim-label");
 
-        grid.Attach(name,    0, 0, 2, 1);
-        grid.Attach(reason,  1, 1, 1, 1);
+        grid.Attach(name, 0, 0, 2, 1);
+        grid.Attach(reason, 1, 1, 1, 1);
         grid.Attach(version, 0, 1, 1, 1);
-        grid.Attach(date,    1, 2, 1, 1);
-        grid.Attach(size,    0, 2, 1, 1);
+        grid.Attach(date, 1, 2, 1, 1);
+        grid.Attach(size, 0, 2, 1, 1);
 
         return grid;
     }
@@ -389,23 +392,16 @@ public class HomeWindow(
     // Port these from HomeViewModel or reference them from a shared service
     private static async Task<List<RssModel>> GetRssFeedAsync(string url, CancellationToken ct = default)
     {
-        var items = new List<RssModel>();
         using var client = new HttpClient();
         var xmlString = await client.GetStringAsync(url, ct);
         var xml = XDocument.Parse(xmlString);
 
-        foreach (var item in xml.Descendants("item"))
+        return xml.Descendants("item").Select(item => new RssModel
         {
-            items.Add(new RssModel
-            {
-                Title = item.Element("title")?.Value ?? "",
-                Link = item.Element("link")?.Value ?? "",
-                Description = Regex.Replace(item.Element("description")?.Value ?? "", "<.*?>", string.Empty),
-                PubDate = item.Element("pubDate")?.Value ?? ""
-            });
-        }
-
-        return items;
+            Title = item.Element("title")?.Value ?? "", Link = item.Element("link")?.Value ?? "",
+            Description = Regex.Replace(item.Element("description")?.Value ?? "", "<.*?>", string.Empty),
+            PubDate = item.Element("pubDate")?.Value ?? ""
+        }).ToList();
     }
 
     public void Dispose()

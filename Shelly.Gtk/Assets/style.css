@@ -61,3 +61,16 @@ columnview header > button:checked {
 .spaced-search text {
     padding-left: 4px;
 }
+
+.dialog-overlay {
+    border: 1px solid;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 24px;
+}
+
+.error-label {
+    color: @error;
+    font-size: 0.9em;
+    margin-top: 4px;
+}

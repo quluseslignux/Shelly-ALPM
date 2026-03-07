@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Shelly.Gtk.UiModels;
 
 namespace Shelly.Gtk.Services;
@@ -17,6 +14,8 @@ public class ConfigService : IConfigService
 
     private ShellyConfig? _config = null;
 
+    public event EventHandler<ShellyConfig>? ConfigSaved;
+
     public void SaveConfig(ShellyConfig config)
     {
         if (!Directory.Exists(ConfigFolder)) Directory.CreateDirectory(ConfigFolder);
@@ -24,6 +23,7 @@ public class ConfigService : IConfigService
         _config = config;
         var json = JsonSerializer.Serialize(config, ShellyGtkJsonContext.Default.ShellyConfig);
         File.WriteAllText(ConfigPath, json);
+        ConfigSaved?.Invoke(this, config);
     }
 
     public ShellyConfig LoadConfig()

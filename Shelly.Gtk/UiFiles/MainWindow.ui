@@ -64,6 +64,7 @@
                   <object class="GtkBox" id="MenuBox">
                     <property name="orientation">horizontal</property>
                     <property name="spacing">4</property>
+                  
                     <child>
                       <object class="GtkMenuButton" id="PackagesMenuButton">
                         <property name="menu-model">PackagesMenu</property>
@@ -140,6 +141,14 @@
                             </child>
                           </object>
                         </child>
+                      </object>
+                    </child>
+                      <child>
+                      <object class="GtkSearchEntry" id="MainSearchEntry">
+                        <property name="placeholder-text">Search all repositories...</property>
+                        <property name="width-request">250</property>
+                        <property name="margin-start">10</property>
+                        <property name="margin-end">10</property>
                       </object>
                     </child>
                   </object>

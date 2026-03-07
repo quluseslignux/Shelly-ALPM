@@ -6,4 +6,5 @@ public interface IConfigService
 {
     void SaveConfig(ShellyConfig config);
     ShellyConfig LoadConfig();
+    event EventHandler<ShellyConfig>? ConfigSaved;
 }

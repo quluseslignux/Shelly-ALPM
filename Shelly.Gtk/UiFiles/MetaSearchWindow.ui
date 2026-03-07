@@ -1,25 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk" version="4.0"/>
-  <object class="GtkWindow" id="MetaSearchWindow">
-    <property name="title">Meta Search</property>
-    <property name="default-width">600</property>
-    <property name="default-height">400</property>
+  <object class="GtkBox" id="MetaSearchWindow">
+    <property name="orientation">vertical</property>
+    <property name="spacing">10</property>
     <child>
       <object class="GtkBox">
-        <property name="orientation">vertical</property>
-        <property name="spacing">10</property>
+        <property name="spacing">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="hexpand">true</property>
         <child>
-          <object class="GtkSearchEntry" id="search_entry">
-            <property name="placeholder-text">Search packages...</property>
+          <object class="GtkButton" id="install_button">
+            <property name="label">Install</property>
+            <style>
+              <class name="suggested-action"/>
+            </style>
           </object>
         </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="overlay-scrolling">false</property>
+        <property name="vexpand">true</property>
         <child>
-          <object class="GtkScrolledWindow">
-            <property name="overlay-scrolling">false</property>
-            <property name="vexpand">true</property>
+          <object class="GtkColumnView" id="package_grid">
             <child>
-              <object class="GtkListView" id="results_list"/>
+              <object class="GtkColumnViewColumn" id="name_column">
+                <property name="title">Name</property>
+                <property name="expand">true</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkColumnViewColumn" id="repo_column">
+                <property name="title">Repository</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkColumnViewColumn" id="version_column">
+                <property name="title">Version</property>
+              </object>
+            </child>
+             <child>
+              <object class="GtkColumnViewColumn" id="check_column">
+                <property name="fixed-width">40</property>
+              </object>
             </child>
           </object>
         </child>

@@ -5,25 +5,27 @@ namespace Shelly.Gtk.Windows.Dialog;
 
 public class PasswordDialog(ICredentialManager credentialManager)
 {
-    public void ShowPasswordDialog(string reason)
+    public void ShowPasswordDialog(Overlay parentOverlay, string reason)
     {
-        var dialog = Window.New();
-        dialog.SetTitle("Authentication Required");
-        dialog.SetModal(true);
-        dialog.SetDefaultSize(400, 200);
-        dialog.SetIconName("shelly");
-
         var box = Box.New(Orientation.Vertical, 12);
+        box.SetHalign(Align.Center);
+        box.SetValign(Align.Center);
+        box.SetSizeRequest(400, -1);
         box.SetMarginTop(20);
         box.SetMarginBottom(20);
         box.SetMarginStart(20);
         box.SetMarginEnd(20);
+        
+        var titleLabel = Label.New("Authentication Required");
+        titleLabel.AddCssClass("title-4");
+        box.Append(titleLabel);
 
         var label = Label.New($"Password needed to execute: {reason}.");
-
+        label.SetWrap(true);
         box.Append(label);
 
         var errorLabel = Label.New("");
+        errorLabel.AddCssClass("error-label");
 
         var passwordEntry = PasswordEntry.New();
         passwordEntry.SetShowPeekIcon(true);
@@ -35,11 +37,12 @@ public class PasswordDialog(ICredentialManager credentialManager)
 
         var cancelButton = Button.NewWithLabel("Cancel");
         var submitButton = Button.NewWithLabel("Authenticate");
+        submitButton.AddCssClass("suggested-action");
 
         cancelButton.OnClicked += async (s, e) =>
         {
             await credentialManager.CompleteCredentialRequestAsync(false);
-            dialog.Close();
+            parentOverlay.RemoveOverlay(box);
         };
 
         submitButton.OnClicked += async (s, e) =>
@@ -50,7 +53,7 @@ public class PasswordDialog(ICredentialManager credentialManager)
 
             if (credentialManager.IsValidated)
             {
-                dialog.Close();
+                parentOverlay.RemoveOverlay(box);
             }
             else
             {
@@ -66,7 +69,6 @@ public class PasswordDialog(ICredentialManager credentialManager)
         buttonBox.Append(submitButton);
         box.Append(buttonBox);
 
-        dialog.SetChild(box);
-        dialog.Show();
+        parentOverlay.AddOverlay(box);
     }
 }

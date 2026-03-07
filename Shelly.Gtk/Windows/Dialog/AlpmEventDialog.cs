@@ -5,19 +5,17 @@ namespace Shelly.Gtk.Windows.Dialog;
 
 public class AlpmEventDialog
 {
-    public static void ShowAlpmEventDialog(QuestionEventArgs e)
+    public static void ShowAlpmEventDialog(Overlay parentOverlay, QuestionEventArgs e)
     {
-        var window = Window.New();
-        window.SetTitle("System Action Required");
-        window.SetModal(true);
-        window.SetDefaultSize(450, -1); // Auto height
-        window.SetIconName("shelly");
-
         var box = Box.New(Orientation.Vertical, 12);
+        box.SetHalign(Align.Center);
+        box.SetValign(Align.Center);
+        box.SetSizeRequest(450, -1);
         box.SetMarginTop(20);
         box.SetMarginBottom(20);
         box.SetMarginStart(20);
         box.SetMarginEnd(20);
+        box.AddCssClass("dialog-overlay");
 
         var titleLabel = Label.New(string.Empty);
         titleLabel.SetMarkup($"<b>{GetQuestionTitle(e.QuestionType)}</b>");
@@ -48,7 +46,7 @@ public class AlpmEventDialog
             selectButton.OnClicked += (s, args) =>
             {
                 e.SetResponse(combo.GetActive());
-                window.Close();
+                parentOverlay.RemoveOverlay(box);
             };
             buttonBox.Append(selectButton);
         }
@@ -58,7 +56,7 @@ public class AlpmEventDialog
             noButton.OnClicked += (s, args) =>
             {
                 e.SetResponse(0); 
-                window.Close();
+                parentOverlay.RemoveOverlay(box);
             };
 
             var yesButton = Button.NewWithLabel("Yes");
@@ -66,7 +64,7 @@ public class AlpmEventDialog
             yesButton.OnClicked += (s, args) =>
             {
                 e.SetResponse(1); 
-                window.Close();
+                parentOverlay.RemoveOverlay(box);
             };
 
             buttonBox.Append(noButton);
@@ -74,8 +72,7 @@ public class AlpmEventDialog
         }
 
         box.Append(buttonBox);
-        window.SetChild(box);
-        window.Show();
+        parentOverlay.AddOverlay(box);
     }
 
     private static string GetQuestionTitle(QuestionType type) => type switch

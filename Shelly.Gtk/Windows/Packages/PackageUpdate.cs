@@ -7,7 +7,7 @@ namespace Shelly.Gtk.Windows.Packages;
 
 public class PackageUpdate(IPrivilegedOperationService privilegedOperationService, ILockoutService lockoutService) : IShellyWindow
 {
-     private Box _box = null!;
+    private Box _box = null!;
     private ColumnView _columnView = null!;
     private SingleSelection _selectionModel = null!;
     private Gio.ListStore _listStore = null!;
