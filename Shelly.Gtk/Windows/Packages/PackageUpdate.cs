@@ -260,7 +260,7 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
         
         for (uint i = 0; i < _listStore.GetNItems(); i++)
         {
-            if (_listStore.GetObject(i) is not AlpmPackageGObject pkgObj) continue;
+            if (_listStore.GetObject(i) is not AlpmUpdateGObject pkgObj) continue;
             pkgObj.Package = null;
             pkgObj.Dispose();
         }

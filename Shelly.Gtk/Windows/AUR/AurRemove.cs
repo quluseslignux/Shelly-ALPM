@@ -17,6 +17,9 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
     private string _searchText = string.Empty;
     private FilterListModel _filterListModel = null!;
     private CustomFilter _filter = null!;
+    private SignalListItemFactory _checkFactory = null!;
+    private SignalListItemFactory _nameFactory = null!;
+    private SignalListItemFactory _versionFactory = null!;
    
 
     public Widget CreateWindow()
@@ -74,9 +77,9 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
         _filter.Changed(FilterChange.Different);
     }
     
-    private static void SetupColumns(ColumnViewColumn checkColumn, ColumnViewColumn nameColumn, ColumnViewColumn versionColumn)
+    private void SetupColumns(ColumnViewColumn checkColumn, ColumnViewColumn nameColumn, ColumnViewColumn versionColumn)
     {
-        var checkFactory = SignalListItemFactory.New();
+        var checkFactory = _checkFactory = SignalListItemFactory.New();
         checkFactory.OnSetup += (_, args) =>
         {
             var listItem = (ListItem)args.Object;
@@ -114,7 +117,7 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
 
         checkColumn.SetFactory(checkFactory);
         
-        var nameFactory = SignalListItemFactory.New();
+        var nameFactory = _nameFactory = SignalListItemFactory.New();
         nameFactory.OnSetup += (_, args) =>
         {
             var listItem = (ListItem)args.Object;
@@ -131,7 +134,7 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
         };
         nameColumn.SetFactory(nameFactory);
         
-        var versionFactory = SignalListItemFactory.New();
+        var versionFactory = _versionFactory = SignalListItemFactory.New();
         versionFactory.OnSetup += (_, args) =>
         {
             var listItem = (ListItem)args.Object;
@@ -153,6 +156,41 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
     {
         _cts.Cancel();
         _cts.Dispose();
+
+        // Disconnect the model from the view to break circular refs
+        _columnView.SetModel(null);
+
+        // Dispose all GObject items BEFORE removing them
+        for (uint i = 0; i < _listStore.GetNItems(); i++)
+        {
+            if (_listStore.GetObject(i) is AurPackageGObject pkgObj)
+            {
+                pkgObj.Package = null;
+                pkgObj.Dispose();
+            }
+        }
+
+        _listStore.RemoveAll();
+
+        _selectionModel.Dispose();
+        _filterListModel.Dispose();
+        _filter.Dispose();
+        _listStore.Dispose();
+
+        _checkFactory.Dispose();
+        _nameFactory.Dispose();
+        _versionFactory.Dispose();
+
+        _columnView = null!;
+        _box = null!;
+        _selectionModel = null!;
+        _listStore = null!;
+        _filterListModel = null!;
+        _filter = null!;
+
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+        GC.WaitForPendingFinalizers();
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
     }
 
     private async Task LoadDataAsync(CancellationToken ct = default)

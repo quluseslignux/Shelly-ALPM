@@ -15,6 +15,11 @@ public class HomeWindow(
 {
     private Box _box = null!;
     private readonly CancellationTokenSource _cts = new();
+    private Gio.ListStore? _store;
+    private NoSelection? _selectionModel;
+    private SignalListItemFactory? _factory;
+    private ListView? _listView;
+    private ListBox? _listBox;
 
     public Widget CreateWindow()
     {
@@ -22,9 +27,11 @@ public class HomeWindow(
         _box = (Box)builder.GetObject("HomeWindow")!;
 
         var listBox = (ListBox)builder.GetObject("NewsListBox")!;
+        _listBox = listBox;
         listBox.OnRealize += (sender, args) => { _ = LoadFeedAsync(listBox, _cts.Token); };
 
         var listView = (ListView)builder.GetObject("InstalledPackagesView")!;
+        _listView = listView;
         listView.OnRealize += (sender, args) => { _ = LoadPackagesAsync(listView, _cts.Token); };
 
         var totalAurLabel = (Label)builder.GetObject("TotalAurLabel")!;
@@ -234,13 +241,15 @@ public class HomeWindow(
         }
     }
 
-    private static void PopulateInstalledPackages(ListView listView, List<AlpmPackageDto> packages)
+    private void PopulateInstalledPackages(ListView listView, List<AlpmPackageDto> packages)
     {
         var store = Gio.ListStore.New(AlpmPackageGObject.GetGType());
         foreach (var pkg in packages)
             store.Append(new AlpmPackageGObject() { Package = pkg });
 
         var factory = SignalListItemFactory.New();
+        _store = store;
+        _factory = factory;
 
         factory.OnSetup += (_, args) =>
         {
@@ -261,7 +270,8 @@ public class HomeWindow(
             FindLabel(grid, "date").SetText(pkg.InstallDate.ToString() ?? string.Empty);
         };
 
-        listView.SetModel(NoSelection.New(store));
+        _selectionModel = NoSelection.New(store);
+        listView.SetModel(_selectionModel);
         listView.SetFactory(factory);
     }
 
@@ -408,5 +418,47 @@ public class HomeWindow(
     {
         _cts.Cancel();
         _cts.Dispose();
+
+        // Disconnect model from view
+        _listView?.SetModel(null);
+        _listView?.SetFactory(null);
+
+        // Dispose GObject items in store
+        if (_store != null)
+        {
+            for (var i = 0u; i < _store.GetNItems(); i++)
+            {
+                if (_store.GetObject(i) is AlpmPackageGObject item)
+                {
+                    item.Package = null;
+                    item.Dispose();
+                }
+            }
+            _store.RemoveAll();
+        }
+
+        // Clear listbox children
+        if (_listBox != null)
+        {
+            while (_listBox.GetFirstChild() is { } child)
+                _listBox.Remove(child);
+        }
+
+        // Dispose selection model, store, factory
+        _selectionModel?.Dispose();
+        _store?.Dispose();
+        _factory?.Dispose();
+
+        // Null out references
+        _selectionModel = null;
+        _store = null;
+        _factory = null;
+        _listView = null;
+        _listBox = null;
+
+        // Aggressive GC
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
     }
 }

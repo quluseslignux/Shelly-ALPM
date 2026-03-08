@@ -270,9 +270,43 @@ public class MetaSearch(
 
     public void Dispose()
     {
+        // Disconnect the model from the view to break circular refs
+        _columnView.SetModel(null);
+
+        // Dispose all GObject items BEFORE removing them
+        for (uint i = 0; i < _listStore.GetNItems(); i++)
+        {
+            if (_listStore.GetObject(i) is MetaPackageGObject pkgObj)
+            {
+                pkgObj.Package = null;
+                pkgObj.Dispose();
+            }
+        }
+
+        _listStore.RemoveAll();
+
+        _selectionModel.Dispose();
+        _listStore.Dispose();
+
         _checkFactory.Dispose();
         _nameFactory.Dispose();
         _repoFactory.Dispose();
         _versionFactory.Dispose();
+
+        _checkBinding.Clear();
+
+        _columnView = null!;
+        _box = null!;
+        _selectionModel = null!;
+        _listStore = null!;
+        _installButton = null!;
+        _checkFactory = null!;
+        _nameFactory = null!;
+        _repoFactory = null!;
+        _versionFactory = null!;
+
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+        GC.WaitForPendingFinalizers();
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
     }
 }
