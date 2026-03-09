@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Gtk;
 using Shelly.Gtk.Helpers;
 using Shelly.Gtk.Services;
@@ -24,6 +25,13 @@ public class MetaSearch(
     private SignalListItemFactory _nameFactory = null!;
     private SignalListItemFactory _repoFactory = null!;
     private SignalListItemFactory _versionFactory = null!;
+    private SignalListItemFactory _descriptionFactory = null!;
+
+    private ColumnViewColumn _checkColumn = null!;
+    private ColumnViewColumn _nameColumn = null!;
+    private ColumnViewColumn _repoColumn = null!;
+    private ColumnViewColumn _versionColumn = null!;
+    private ColumnViewColumn _descriptionColumn = null!;
 
     private Dictionary<ListItem, EventHandler> _checkBinding = [];
 
@@ -33,26 +41,27 @@ public class MetaSearch(
     {
         _initialQuery = initialQuery;
         var builder = Builder.NewFromString(ResourceHelper.LoadUiFile("UiFiles/MetaSearchWindow.ui"), -1);
-       
+
         _box = (Box)builder.GetObject("MetaSearchWindow")!;
         _columnView = (ColumnView)builder.GetObject("package_grid")!;
         _installButton = (Button)builder.GetObject("install_button")!;
 
-        var checkColumn = (ColumnViewColumn)builder.GetObject("check_column")!;
-        var nameColumn = (ColumnViewColumn)builder.GetObject("name_column")!;
-        var repoColumn = (ColumnViewColumn)builder.GetObject("repo_column")!;
-        var versionColumn = (ColumnViewColumn)builder.GetObject("version_column")!;
+        _checkColumn = (ColumnViewColumn)builder.GetObject("check_column")!;
+        _nameColumn = (ColumnViewColumn)builder.GetObject("name_column")!;
+        _repoColumn = (ColumnViewColumn)builder.GetObject("repo_column")!;
+        _versionColumn = (ColumnViewColumn)builder.GetObject("version_column")!;
+        _descriptionColumn = (ColumnViewColumn)builder.GetObject("description_column")!;
 
         _listStore = Gio.ListStore.New(MetaPackageGObject.GetGType());
         _selectionModel = SingleSelection.New(_listStore);
         _selectionModel.CanUnselect = true;
         _columnView.SetModel(_selectionModel);
 
-        SetupColumns(checkColumn, nameColumn, repoColumn, versionColumn);
+        SetupColumns(_checkColumn, _nameColumn, _repoColumn, _versionColumn, _descriptionColumn);
 
         ColumnViewHelper.AlignColumnHeader(_columnView, 1, Align.End);
         ColumnViewHelper.AlignColumnHeader(_columnView, 2, Align.End);
-        
+
         _installButton.OnClicked += (_, _) => { _ = InstallSelectedAsync(); };
 
         if (!string.IsNullOrEmpty(_initialQuery))
@@ -72,7 +81,7 @@ public class MetaSearch(
     }
 
     private void SetupColumns(ColumnViewColumn checkColumn, ColumnViewColumn nameColumn, ColumnViewColumn repoColumn,
-        ColumnViewColumn versionColumn)
+        ColumnViewColumn versionColumn, ColumnViewColumn descriptionColumn)
     {
         _checkFactory = SignalListItemFactory.New();
         _checkFactory.OnSetup += (_, args) =>
@@ -141,6 +150,17 @@ public class MetaSearch(
                 label.SetText(pkg.Version);
         };
         versionColumn.SetFactory(_versionFactory);
+
+        _descriptionFactory = SignalListItemFactory.New();
+        _descriptionFactory.OnSetup += (_, args) =>
+            ((ListItem)args.Object).SetChild((new Label { Halign = Align.Start, MarginStart = 6 }));
+        _descriptionFactory.OnBind += (_, args) =>
+        {
+            var listItem = (ListItem)args.Object;
+            if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
+                label.SetText(pkg.Description);
+        };
+        descriptionColumn.SetFactory(_descriptionFactory);
     }
 
     private async Task LoadDataAsync()
@@ -181,7 +201,7 @@ public class MetaSearch(
                         x.Result.Select(y => new MetaPackageModel(y.Id, y.Name, y.Version, y.Description,
                             PackageType.FLATPAK, y.Description, y.Id,
                             flatPakInstalled.Any(z => z.Name == y.Name))).ToList());
-                
+
                 return flatpakAvailable;
             });
             groupList.Add(flatpakGroup);
@@ -214,7 +234,7 @@ public class MetaSearch(
                 models.AddRange(metaEnumerable.ToList());
             }
         }
-        
+
         GLib.Functions.IdleAdd(0, () =>
         {
             _listStore.RemoveAll();
@@ -222,6 +242,7 @@ public class MetaSearch(
             {
                 _listStore.Append(new MetaPackageGObject { Package = model });
             }
+
             return false;
         });
     }
@@ -292,6 +313,12 @@ public class MetaSearch(
         _nameFactory.Dispose();
         _repoFactory.Dispose();
         _versionFactory.Dispose();
+        _checkColumn.Dispose();
+        _nameColumn.Dispose();
+        _repoColumn.Dispose();
+        _descriptionColumn.Dispose();
+        _versionColumn.Dispose();
+
 
         _checkBinding.Clear();
 
@@ -304,6 +331,7 @@ public class MetaSearch(
         _nameFactory = null!;
         _repoFactory = null!;
         _versionFactory = null!;
+        _descriptionFactory = null!;
 
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
         GC.WaitForPendingFinalizers();
