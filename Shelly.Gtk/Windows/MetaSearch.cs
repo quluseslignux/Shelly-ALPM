@@ -34,7 +34,7 @@ public class MetaSearch(
     private ColumnViewColumn _versionColumn = null!;
     private ColumnViewColumn _descriptionColumn = null!;
 
-    private Dictionary<ListItem, EventHandler> _checkBinding = [];
+    private Dictionary<ColumnViewCell, EventHandler> _checkBinding = [];
     private readonly List<MetaPackageGObject> _packageGObjectRefs = [];
 
     public Widget CreateWindow() => CreateWindow(null);
@@ -88,7 +88,7 @@ public class MetaSearch(
         _checkFactory = SignalListItemFactory.New();
         _checkFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var check = new CheckButton { MarginStart = 10, MarginEnd = 10 };
             listItem.SetChild(check);
             check.OnToggled += (s, _) =>
@@ -99,7 +99,7 @@ public class MetaSearch(
         };
         _checkFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not MetaPackageGObject pkgObj ||
                 listItem.GetChild() is not CheckButton check) return;
             check.SetActive(pkgObj.IsSelected);
@@ -114,7 +114,7 @@ public class MetaSearch(
         };
         _checkFactory.OnUnbind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not MetaPackageGObject pkgObj) return;
             if (_checkBinding.Remove(listItem, out var handler)) pkgObj.OnSelectionToggled -= handler;
         };
@@ -122,10 +122,13 @@ public class MetaSearch(
 
         _nameFactory = SignalListItemFactory.New();
         _nameFactory.OnSetup += (_, args) =>
-            ((ListItem)args.Object).SetChild(new Label { Halign = Align.Start, MarginStart = 6 });
+        {
+            if (args.Object is not ColumnViewCell listItem) return;
+            listItem.SetChild(new Label { Halign = Align.Start, MarginStart = 6 });
+        };
         _nameFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
                 label.SetText(pkg.Name);
         };
@@ -133,10 +136,13 @@ public class MetaSearch(
 
         _repoFactory = SignalListItemFactory.New();
         _repoFactory.OnSetup += (_, args) =>
-            ((ListItem)args.Object).SetChild(new Label { Halign = Align.End, MarginStart = 6 });
+        {
+            if (args.Object is not ColumnViewCell listItem) return;
+            listItem.SetChild(new Label { Halign = Align.End, MarginStart = 6 });
+        };
         _repoFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
                 label.SetText(pkg.Repository);
         };
@@ -144,10 +150,13 @@ public class MetaSearch(
 
         _versionFactory = SignalListItemFactory.New();
         _versionFactory.OnSetup += (_, args) =>
-            ((ListItem)args.Object).SetChild(new Label { Halign = Align.End, MarginStart = 6 });
+        {
+            if (args.Object is not ColumnViewCell listItem) return;
+            listItem.SetChild(new Label { Halign = Align.End, MarginStart = 6 });
+        };
         _versionFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
                 label.SetText(pkg.Version);
         };
@@ -155,10 +164,13 @@ public class MetaSearch(
 
         _descriptionFactory = SignalListItemFactory.New();
         _descriptionFactory.OnSetup += (_, args) =>
-            ((ListItem)args.Object).SetChild((new Label { Halign = Align.Start, MarginStart = 6 }));
+        {
+            if (args.Object is not ColumnViewCell listItem) return;
+            listItem.SetChild(new Label { Halign = Align.Start, MarginStart = 6 });
+        };
         _descriptionFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
                 label.SetText(pkg.Description.Substring(0, pkg.Description.Length > 100 ? 100 : pkg.Description.Length));
         };
@@ -292,35 +304,5 @@ public class MetaSearch(
         {
             lockoutService.Hide();
         }
-    }
-
-    public void Dispose()
-    {
-        _columnView.SetModel(null);
-
-        _listStore.RemoveAll();
-
-        _selectionModel.Dispose();
-        _listStore.Dispose();
-
-        _checkBinding.Clear();
-        _checkBinding = null!;
-
-        _checkColumn.Dispose();
-        _nameColumn.Dispose();
-        _repoColumn.Dispose();
-        _descriptionColumn.Dispose();
-        _versionColumn.Dispose();
-
-        _columnView.Dispose();
-        _box.Dispose();
-
-        _checkFactory.Dispose();
-        _nameFactory.Dispose();
-        _repoFactory.Dispose();
-        _versionFactory.Dispose();
-        _descriptionFactory.Dispose();
-
-        _packageGObjectRefs.Clear();
     }
 }

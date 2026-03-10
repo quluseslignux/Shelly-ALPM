@@ -127,32 +127,6 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
         idLabel.SetText(package.Id);
         versionLabel.SetText(package.Version);
     }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-
-        _listView?.SetModel(null);
-
-        _listStore?.RemoveAll();
-
-        _selectionModel?.Dispose();
-        _listStore?.Dispose();
-
-        _allPackages = null!;
-
-        _factory?.Dispose();
-        _factory = null!;
-
-        _listView = null!;
-        _listStore = null!;
-        _selectionModel = null!;
-        _categoryDropDown = null!;
-
-        _stringObjectRefs.Clear();
-    }
-
     private async Task LoadDataAsync(CancellationToken ct = default)
     {
         try

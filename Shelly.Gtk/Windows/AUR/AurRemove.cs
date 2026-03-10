@@ -22,7 +22,7 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
     private SignalListItemFactory _checkFactory = null!;
     private SignalListItemFactory _nameFactory = null!;
     private SignalListItemFactory _versionFactory = null!;
-    private Dictionary<ListItem, (SignalHandler<CheckButton> OnToggled, EventHandler OnExternalToggle)> _checkBinding = [];
+    private Dictionary<ColumnViewCell, (SignalHandler<CheckButton> OnToggled, EventHandler OnExternalToggle)> _checkBinding = [];
     private readonly List<AurPackageGObject> _packageGObjectRefs = [];
    
 
@@ -86,14 +86,14 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
         var checkFactory = _checkFactory = SignalListItemFactory.New();
         checkFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var check = new CheckButton { MarginStart = 10, MarginEnd = 10 };
             listItem.SetChild(check);
         };
 
         checkFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject pkgObj ||
                 listItem.GetChild() is not CheckButton checkButton) return;
 
@@ -121,7 +121,7 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
 
         checkFactory.OnUnbind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject pkgObj || listItem.GetChild() is not CheckButton checkButton) return;
             if (_checkBinding.Remove(listItem, out var handlers))
             {
@@ -135,13 +135,13 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
         var nameFactory = _nameFactory = SignalListItemFactory.New();
         nameFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var label = Label.New(string.Empty);
             listItem.SetChild(label);
         };
         nameFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject { Package: { } pkg } ||
                 listItem.GetChild() is not Label label) return;
             label.SetText(pkg.Name);
@@ -152,13 +152,13 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
         var versionFactory = _versionFactory = SignalListItemFactory.New();
         versionFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var label = Label.New(string.Empty);
             listItem.SetChild(label);
         };
         versionFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject { Package: { } pkg } ||
                 listItem.GetChild() is not Label label) return;
             label.SetText(pkg.Version);
@@ -166,35 +166,6 @@ public class AurRemove(IPrivilegedOperationService privilegedOperationService, I
         };
         versionColumn.SetFactory(versionFactory);
     }
-    
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-
-        _columnView.SetModel(null);
-
-        _listStore.RemoveAll();
-
-        _selectionModel.Dispose();
-        _filterListModel.Dispose();
-        _filter.Dispose();
-        _listStore.Dispose();
-
-        _checkBinding.Clear();
-        _checkBinding = null!;
-
-        _columnView.Dispose();
-        _box.Dispose();
-
-        _checkFactory.Dispose();
-        _nameFactory.Dispose();
-        _versionFactory.Dispose();
-
-        _packageGObjectRefs.Clear();
-        
-    }
-
     private async Task LoadDataAsync(CancellationToken ct = default)
     {
         try

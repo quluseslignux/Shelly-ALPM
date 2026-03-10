@@ -435,35 +435,4 @@ public class HomeWindow(
             PubDate = item.Element("pubDate")?.Value ?? ""
         }).ToList();
     }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-
-        _listView?.SetModel(null);
-        _listView?.SetFactory(null);
-
-        // Clear listbox children
-        if (_listBox != null)
-        {
-            while (_listBox.GetFirstChild() is { } child)
-                _listBox.Remove(child);
-        }
-
-        _store?.RemoveAll();
-
-        _selectionModel?.Dispose();
-        _store?.Dispose();
-        _factory?.Dispose();
-
-        _selectionModel = null;
-        _store = null;
-        _factory = null;
-        _listView = null;
-        _listBox = null;
-
-        _packageGObjectRefs.Clear();
-        
-    }
 }

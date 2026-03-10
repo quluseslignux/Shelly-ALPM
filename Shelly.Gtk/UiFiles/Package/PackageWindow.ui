@@ -87,43 +87,82 @@
           </object>
         </child>
         <child>
-          <object class="GtkScrolledWindow">
-            <property name="overlay-scrolling">false</property>
+          <object class="GtkBox" id="detail_hbox">
+            <property name="orientation">horizontal</property>
             <property name="hexpand">true</property>
             <property name="vexpand">true</property>
             <child>
-              <object class="GtkColumnView" id="package_column_view">
+              <object class="GtkScrolledWindow">
+                <property name="overlay-scrolling">false</property>
                 <property name="hexpand">true</property>
-                <property name="show-column-separators">false</property>
-                <property name="show-row-separators">false</property>
                 <property name="vexpand">true</property>
                 <child>
-                  <object class="GtkColumnViewColumn" id="name_column">
-                    <property name="expand">true</property>
-                    <property name="title">Name</property>
+                  <object class="GtkColumnView" id="package_column_view">
+                    <property name="hexpand">true</property>
+                    <property name="show-column-separators">false</property>
+                    <property name="show-row-separators">false</property>
+                    <property name="vexpand">true</property>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="name_column">
+                        <property name="expand">true</property>
+                        <property name="title">Name</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="version_column">
+                        <property name="expand">true</property>
+                        <property name="title">Version</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="size_column">
+                        <property name="expand">true</property>
+                        <property name="title">Size</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="repository_column">
+                        <property name="expand">true</property>
+                        <property name="title">Repository</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="check_column">
+                        <property name="title"/>
+                      </object>
+                    </child>
                   </object>
                 </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRevealer" id="detail_revealer">
+                <property name="reveal-child">false</property>
+                <property name="transition-type">slide-left</property>
                 <child>
-                  <object class="GtkColumnViewColumn" id="version_column">
-                    <property name="expand">true</property>
-                    <property name="title">Version</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkColumnViewColumn" id="size_column">
-                    <property name="expand">true</property>
-                    <property name="title">Size</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkColumnViewColumn" id="repository_column">
-                    <property name="expand">true</property>
-                    <property name="title">Repository</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkColumnViewColumn" id="check_column">
-                    <property name="title"/>
+                  <object class="GtkFrame">
+                    <property name="margin-top">0</property>
+                    <property name="margin-bottom">0</property>
+                    <property name="margin-start">0</property>
+                    <property name="margin-end">0</property>
+                    <child>
+                      <object class="GtkScrolledWindow">
+                        <property name="vexpand">true</property>
+                        <property name="width-request">350</property>
+                        <property name="overlay-scrolling">false</property>
+                        <property name="hscrollbar-policy">never</property>
+                        <child>
+                          <object class="GtkBox" id="detail_box">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">4</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-end">12</property>
+                            <property name="margin-top">8</property>
+                            <property name="margin-bottom">8</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

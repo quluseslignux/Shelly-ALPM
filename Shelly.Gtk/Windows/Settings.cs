@@ -238,15 +238,4 @@ public class Settings(
             lockoutService.Hide();
         }
     }
-
-    public void Dispose()
-    {
-        _box.Dispose();
-        _box = null!;
-        _config = null!;
-
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-    }
 }

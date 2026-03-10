@@ -28,7 +28,7 @@ public class AurInstall(
     private SignalListItemFactory _votesFactory = null!;
     private SignalListItemFactory _popFactory = null!;
     private SignalListItemFactory _versionFactory = null!;
-    private Dictionary<ListItem, (SignalHandler<CheckButton> OnToggled, EventHandler OnExternalToggle)> _checkBinding = [];
+    private Dictionary<ColumnViewCell, (SignalHandler<CheckButton> OnToggled, EventHandler OnExternalToggle)> _checkBinding = [];
     private readonly List<AurPackageGObject> _packageGObjectRefs = [];
 
     public Widget CreateWindow()
@@ -76,14 +76,14 @@ public class AurInstall(
         var checkFactory = _checkFactory = SignalListItemFactory.New();
         checkFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var check = new CheckButton { MarginStart = 10, MarginEnd = 10 };
             listItem.SetChild(check);
         };
 
         checkFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject pkgObj ||
                 listItem.GetChild() is not CheckButton checkButton) return;
 
@@ -111,7 +111,7 @@ public class AurInstall(
 
         checkFactory.OnUnbind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject pkgObj  || listItem.GetChild() is not CheckButton checkButton) return;
             if (_checkBinding.Remove(listItem, out var handlers))
             {
@@ -125,13 +125,13 @@ public class AurInstall(
         var nameFactory = _nameFactory = SignalListItemFactory.New();
         nameFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var label = Label.New(string.Empty);
             listItem.SetChild(label);
         };
         nameFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject { Package: { } pkg } ||
                 listItem.GetChild() is not Label label) return;
             label.SetText(pkg.Name);
@@ -142,13 +142,13 @@ public class AurInstall(
         var votesFactory = _votesFactory = SignalListItemFactory.New();
         votesFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var label = Label.New(string.Empty);
             listItem.SetChild(label);
         };
         votesFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject { Package: { } pkg } ||
                 listItem.GetChild() is not Label label) return;
             label.SetText(pkg.NumVotes.ToString(CultureInfo.InvariantCulture));
@@ -159,13 +159,13 @@ public class AurInstall(
         var sizeFactory = _popFactory = SignalListItemFactory.New();
         sizeFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var label = Label.New(string.Empty);
             listItem.SetChild(label);
         };
         sizeFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject { Package: { } pkg } ||
                 listItem.GetChild() is not Label label) return;
             label.SetText(pkg.Popularity.ToString("F2", CultureInfo.InvariantCulture));
@@ -176,13 +176,13 @@ public class AurInstall(
         var versionFactory = _versionFactory = SignalListItemFactory.New();
         versionFactory.OnSetup += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             var label = Label.New(string.Empty);
             listItem.SetChild(label);
         };
         versionFactory.OnBind += (_, args) =>
         {
-            var listItem = (ListItem)args.Object;
+            if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not AurPackageGObject { Package: { } pkg } ||
                 listItem.GetChild() is not Label label) return;
             label.SetText(pkg.Version);
@@ -221,34 +221,6 @@ public class AurInstall(
             });
         }
     }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-
-        _columnView.SetModel(null);
-
-        _listStore.RemoveAll();
-
-        _selectionModel.Dispose();
-        _listStore.Dispose();
-
-        _checkBinding.Clear();
-        _checkBinding = null!;
-
-        _columnView.Dispose();
-        _box.Dispose();
-
-        _checkFactory.Dispose();
-        _nameFactory.Dispose();
-        _votesFactory.Dispose();
-        _popFactory.Dispose();
-        _versionFactory.Dispose();
-
-        _packageGObjectRefs.Clear();
-    }
-
     private async Task InstallSelectedAsync()
     {
         var selectedPackages = new List<string>();

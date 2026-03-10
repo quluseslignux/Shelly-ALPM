@@ -112,6 +112,7 @@ sealed class Program
             };
 
             IShellyWindow? currentPage = null;
+            var previousPages = new List<IShellyWindow>();
 
             homeButton.OnClicked += (_, _) => NavigateTo<HomeWindow>();
             settingsButton.OnClicked += (_, _) => NavigateTo<Settings>();
@@ -219,13 +220,13 @@ sealed class Program
 
             void NavigateWithQuery<T>(string? query) where T : IShellyWindow
             {
-             
-
                 while (contentArea.GetFirstChild() is { } child)
                 {
                     contentArea.Remove(child);
                 }
 
+                if (currentPage != null)
+                    previousPages.Add(currentPage);
                 currentPage = null!;
                 var page = serviceProvider.GetRequiredService<T>();
                 if (page is Settings settings)
