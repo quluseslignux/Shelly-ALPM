@@ -4,6 +4,7 @@ using Shelly.Gtk.Helpers;
 using Shelly.Gtk.Services;
 using Shelly.Gtk.UiModels;
 using Shelly.Gtk.UiModels.PackageManagerObjects;
+// ReSharper disable CollectionNeverQueried.Local
 
 namespace Shelly.Gtk.Windows.Flatpak;
 
@@ -18,6 +19,7 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
     private string _searchText = string.Empty;
     private FlatpakCategories _selectedCategory = FlatpakCategories.None;
     private SignalListItemFactory? _factory;
+    private readonly List<StringObject> _stringObjectRefs = [];
 
     public Widget CreateWindow()
     {
@@ -131,19 +133,9 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
         _cts.Cancel();
         _cts.Dispose();
 
-        // Disconnect the model from the view to break circular refs
         _listView?.SetModel(null);
 
-        // Dispose all GObject items BEFORE removing them
-        if (_listStore != null)
-        {
-            for (uint i = 0; i < _listStore.GetNItems(); i++)
-            {
-                _listStore.GetObject(i)?.Dispose();
-            }
-
-            _listStore.RemoveAll();
-        }
+        _listStore?.RemoveAll();
 
         _selectionModel?.Dispose();
         _listStore?.Dispose();
@@ -158,9 +150,7 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
         _selectionModel = null!;
         _categoryDropDown = null!;
 
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+        _stringObjectRefs.Clear();
     }
 
     private async Task LoadDataAsync(CancellationToken ct = default)
@@ -208,10 +198,13 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
         }
 
         _listStore.RemoveAll();
+        _stringObjectRefs.Clear();
         
         foreach (var package in filtered)
         {
-            _listStore.Append(StringObject.New(package.Id));
+            var strObj = StringObject.New(package.Id);
+            _stringObjectRefs.Add(strObj);
+            _listStore.Append(strObj);
         }
     }
 

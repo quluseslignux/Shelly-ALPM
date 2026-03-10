@@ -1,9 +1,11 @@
+using GObject;
 using Gtk;
 using Shelly.Gtk.Helpers;
 using Shelly.Gtk.Services;
 using Shelly.Gtk.UiModels;
 using Shelly.Gtk.UiModels.PackageManagerObjects;
 using Shelly.Gtk.UiModels.PackageManagerObjects.GObjects;
+
 // ReSharper disable CollectionNeverQueried.Local
 
 namespace Shelly.Gtk.Windows.Packages;
@@ -25,7 +27,10 @@ public class PackageInstall(
     private CustomFilter _filter = null!;
     private string _searchText = string.Empty;
     private List<AlpmPackageDto> _packages = [];
-    private Dictionary<ListItem, EventHandler> _checkBinding = [];
+
+    private Dictionary<ListItem, (SignalHandler<CheckButton> OnToggled, EventHandler OnExternalToggle)> _checkBinding =
+        [];
+
     private SignalListItemFactory _checkFactory = null!;
     private SignalListItemFactory _nameFactory = null!;
     private SignalListItemFactory _sizeFactory = null!;
@@ -35,20 +40,31 @@ public class PackageInstall(
     private bool _disposed;
     private readonly List<GObject.Object> _childModelRefs = [];
 
+    private Button _installButton = null!;
+    private Button _localInstallButton = null!;
+    private Button _appImageButton = null!;
+    private SearchEntry _searchEntry = null!;
+    private Builder _builder = null!;
+    private ColumnViewColumn _checkColumn = null!;
+    private ColumnViewColumn _nameColumn = null!;
+    private ColumnViewColumn _sizeColumn = null!;
+    private ColumnViewColumn _versionColumn = null!;
+    private ColumnViewColumn _repositoryColumn = null!;
+
     public Widget CreateWindow()
     {
-        var builder = Builder.NewFromString(ResourceHelper.LoadUiFile("UiFiles/Package/PackageWindow.ui"), -1);
-        _overlay = (Overlay)builder.GetObject("PackageWindow")!;
-        _columnView = (ColumnView)builder.GetObject("package_column_view")!;
-        var checkColumn = (ColumnViewColumn)builder.GetObject("check_column")!;
-        var nameColumn = (ColumnViewColumn)builder.GetObject("name_column")!;
-        var sizeColumn = (ColumnViewColumn)builder.GetObject("size_column")!;
-        var versionColumn = (ColumnViewColumn)builder.GetObject("version_column")!;
-        var repositoryColumn = (ColumnViewColumn)builder.GetObject("repository_column")!;
-        var installButton = (Button)builder.GetObject("install_button")!;
-        var localInstallButton = (Button)builder.GetObject("install_local_button")!;
-        var appImageButton = (Button)builder.GetObject("install_appimage_button")!;
-        var searchEntry = (SearchEntry)builder.GetObject("search_entry")!;
+        _builder = Builder.NewFromString(ResourceHelper.LoadUiFile("UiFiles/Package/PackageWindow.ui"), -1);
+        _overlay = (Overlay)_builder.GetObject("PackageWindow")!;
+        _columnView = (ColumnView)_builder.GetObject("package_column_view")!;
+        _checkColumn = (ColumnViewColumn)_builder.GetObject("check_column")!;
+        _nameColumn = (ColumnViewColumn)_builder.GetObject("name_column")!;
+        _sizeColumn = (ColumnViewColumn)_builder.GetObject("size_column")!;
+        _versionColumn = (ColumnViewColumn)_builder.GetObject("version_column")!;
+        _repositoryColumn = (ColumnViewColumn)_builder.GetObject("repository_column")!;
+        _installButton = (Button)_builder.GetObject("install_button")!;
+        _localInstallButton = (Button)_builder.GetObject("install_local_button")!;
+        _appImageButton = (Button)_builder.GetObject("install_appimage_button")!;
+        _searchEntry = (SearchEntry)_builder.GetObject("search_entry")!;
         _listStore = Gio.ListStore.New(AlpmPackageGObject.GetGType());
         _treeListModel = TreeListModel.New(_listStore, false, false, CreateChildModel);
         _filter = CustomFilter.New(FilterPackage);
@@ -56,7 +72,7 @@ public class PackageInstall(
         _selectionModel = SingleSelection.New(_filterListModel);
         _selectionModel.CanUnselect = true;
         _columnView.SetModel(_selectionModel);
-        SetupColumns(checkColumn, nameColumn, sizeColumn, versionColumn, repositoryColumn);
+        SetupColumns(_checkColumn, _nameColumn, _sizeColumn, _versionColumn, _repositoryColumn);
 
         ColumnViewHelper.AlignColumnHeader(_columnView, 1, Align.End);
         ColumnViewHelper.AlignColumnHeader(_columnView, 2, Align.End);
@@ -76,14 +92,14 @@ public class PackageInstall(
                 row.SetExpanded(!row.GetExpanded());
             }
         };
-        searchEntry.OnSearchChanged += (_, _) =>
+        _searchEntry.OnSearchChanged += (_, _) =>
         {
-            _searchText = searchEntry.GetText();
+            _searchText = _searchEntry.GetText();
             ApplyFilter();
         };
-        installButton.OnClicked += (_, _) => { _ = InstallSelectedAsync(); };
-        localInstallButton.OnClicked += (_, _) => { _ = InstallLocalPackage(); };
-        appImageButton.OnClicked += (_, _) => { _ = InstallAppImage(); };
+        _installButton.OnClicked += (_, _) => { _ = InstallSelectedAsync(); };
+        _localInstallButton.OnClicked += (_, _) => { _ = InstallLocalPackage(); };
+        _appImageButton.OnClicked += (_, _) => { _ = InstallAppImage(); };
 
         return _overlay;
     }
@@ -92,19 +108,12 @@ public class PackageInstall(
         ColumnViewColumn sizeColumn, ColumnViewColumn versionColumn, ColumnViewColumn repositoryColumn)
     {
         _checkFactory = SignalListItemFactory.New();
+        //TODO: INTERMITTENT CAST ERROR HERE
         _checkFactory.OnSetup += (_, args) =>
         {
             var listItem = (ListItem)args.Object;
             var check = new CheckButton { MarginStart = 10, MarginEnd = 10 };
             listItem.SetChild(check);
-
-            check.OnToggled += (s, _) =>
-            {
-                if (listItem.GetItem() is TreeListRow row && row.GetItem() is AlpmPackageGObject pkgObj)
-                {
-                    pkgObj.IsSelected = s.GetActive();
-                }
-            };
         };
 
         _checkFactory.OnBind += (_, args) =>
@@ -116,10 +125,17 @@ public class PackageInstall(
 
             checkButton.SetActive(pkgObj.IsSelected);
             checkButton.Visible = true;
+            checkButton.OnToggled += OnToggled;
 
             pkgObj.OnSelectionToggled += OnExternalToggle;
-            _checkBinding[listItem] = OnExternalToggle;
+            _checkBinding[listItem] = (OnToggled, OnExternalToggle);
+
             return;
+
+            void OnToggled(CheckButton s, EventArgs e)
+            {
+                pkgObj.IsSelected = s.GetActive();
+            }
 
             void OnExternalToggle(object? s, EventArgs e)
             {
@@ -131,10 +147,13 @@ public class PackageInstall(
         {
             var listItem = (ListItem)args.Object;
             var row = listItem.GetItem() as TreeListRow;
-            if (row?.GetItem() is not AlpmPackageGObject pkgObj) return;
-            // Unsubscribe to break the reference chain
-            if (_checkBinding.Remove(listItem, out var handler))
-                pkgObj.OnSelectionToggled -= handler;
+            if (row?.GetItem() is not AlpmPackageGObject pkgObj ||
+                listItem.GetChild() is not CheckButton checkButton) return;
+            if (_checkBinding.Remove(listItem, out var handlers))
+            {
+                pkgObj.OnSelectionToggled -= handlers.OnExternalToggle;
+                checkButton.OnToggled -= handlers.OnToggled;
+            }
         };
 
         checkColumn.SetFactory(_checkFactory);
@@ -244,36 +263,59 @@ public class PackageInstall(
         _cts.Cancel();
         _cts.Dispose();
 
-        // Disconnect the model from the view to break circular refs
+        // 1. Disconnect model from view
         _columnView.SetModel(null);
-        
+
+        // 2. Clear columns' factories
+        _checkColumn.SetFactory(null);
+        _nameColumn.SetFactory(null);
+        _sizeColumn.SetFactory(null);
+        _versionColumn.SetFactory(null);
+        _repositoryColumn.SetFactory(null);
+
+        // 3. Remove all items from the store
+        _listStore.RemoveAll();
+
+        // 4. Dispose model chain (non-widget GObjects)
         _selectionModel.Dispose();
         _filterListModel.Dispose();
         _filter.Dispose();
-        
         _treeListModel.Dispose();
         _listStore.Dispose();
-       
 
-        _checkBinding.Clear();
-        _checkBinding = null!;
-
-        _packages = null!;
-        _columnView = null!;
-        _overlay = null!;
-
+        // 5. Dispose factories (non-widget GObjects)
         _checkFactory.Dispose();
         _nameFactory.Dispose();
         _sizeFactory.Dispose();
         _versionFactory.Dispose();
         _repositoryFactory.Dispose();
+
+        // 6. DO NOT dispose widgets — just null out references
+        //    GTK owns these via the widget tree and will clean them up
+        _checkColumn = null!;
+        _nameColumn = null!;
+        _sizeColumn = null!;
+        _versionColumn = null!;
+        _repositoryColumn = null!;
+        _installButton = null!;
+        _localInstallButton = null!;
+        _appImageButton = null!;
+        _searchEntry = null!;
+        _columnView = null!;
+        _overlay = null!;
+        _builder = null!;
+
+        // 7. Clear managed collections
+        _checkBinding.Clear();
+        _checkBinding = null!;
+        _packages = null!;
         _childModelRefs.Clear();
         _packageGObjectRefs.Clear();
-
     }
 
     private async Task LoadDataAsync(CancellationToken ct = default)
     {
+        _listStore.RemoveAll();
         _packageGObjectRefs.Clear();
         _childModelRefs.Clear();
         try
@@ -284,13 +326,6 @@ public class PackageInstall(
 
             ct.ThrowIfCancellationRequested();
             var queue = new Queue<AlpmPackageDto>(_packages);
-
-            GLib.Functions.IdleAdd(0, () =>
-            {
-                if (_disposed) return false;
-                _listStore.RemoveAll();
-                return false;
-            });
 
             GLib.Functions.IdleAdd(0, () =>
             {

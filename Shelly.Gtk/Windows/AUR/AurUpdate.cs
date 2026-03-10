@@ -1,8 +1,10 @@
+using GObject;
 using Gtk;
 using Shelly.Gtk.Helpers;
 using Shelly.Gtk.Services;
 using Shelly.Gtk.UiModels;
 using Shelly.Gtk.UiModels.AUR.GObjects;
+// ReSharper disable CollectionNeverQueried.Local
 
 namespace Shelly.Gtk.Windows.AUR;
 
@@ -19,6 +21,8 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
     private SignalListItemFactory _checkFactory = null!;
     private SignalListItemFactory _nameFactory = null!;
     private SignalListItemFactory _versionFactory = null!;
+    private Dictionary<ListItem, (SignalHandler<CheckButton> OnToggled, EventHandler OnExternalToggle)> _checkBinding = [];
+    private readonly List<AurUpdateGObject> _packageGObjectRefs = [];
 
     public Widget CreateWindow()
     {
@@ -83,14 +87,6 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
             var listItem = (ListItem)args.Object;
             var check = new CheckButton { MarginStart = 10, MarginEnd = 10 };
             listItem.SetChild(check);
-            
-            check.OnToggled += (s, _) =>
-            {
-                if (listItem.GetItem() is AurUpdateGObject pkgObj)
-                {
-                    pkgObj.IsSelected = s.GetActive();
-                }
-            };
         };
 
         checkFactory.OnBind += (_, args) =>
@@ -100,9 +96,17 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
                 listItem.GetChild() is not CheckButton checkButton) return;
 
             checkButton.SetActive(pkgObj.IsSelected);
+            checkButton.OnToggled += OnToggled;
 
             pkgObj.OnSelectionToggled += OnExternalToggle;
+            _checkBinding[listItem] = (OnToggled, OnExternalToggle);
+
             return;
+
+            void OnToggled(CheckButton s, EventArgs e)
+            {
+                pkgObj.IsSelected = s.GetActive();
+            }
 
             void OnExternalToggle(object? s, EventArgs e)
             {
@@ -110,6 +114,17 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
                 {
                     checkButton.SetActive(pkgObj.IsSelected);
                 }
+            }
+        };
+
+        checkFactory.OnUnbind += (_, args) =>
+        {
+            var listItem = (ListItem)args.Object;
+            if (listItem.GetItem() is not AurUpdateGObject pkgObj || listItem.GetChild() is not CheckButton checkButton) return;
+            if (_checkBinding.Remove(listItem, out var handlers))
+            {
+                pkgObj.OnSelectionToggled -= handlers.OnExternalToggle;
+                checkButton.OnToggled -= handlers.OnToggled;
             }
         };
 
@@ -155,18 +170,7 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
         _cts.Cancel();
         _cts.Dispose();
 
-        // Disconnect the model from the view to break circular refs
         _columnView.SetModel(null);
-
-        // Dispose all GObject items BEFORE removing them
-        for (uint i = 0; i < _listStore.GetNItems(); i++)
-        {
-            if (_listStore.GetObject(i) is AurUpdateGObject pkgObj)
-            {
-                pkgObj.Package = null;
-                pkgObj.Dispose();
-            }
-        }
 
         _listStore.RemoveAll();
 
@@ -175,20 +179,17 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
         _filter.Dispose();
         _listStore.Dispose();
 
+        _checkBinding.Clear();
+        _checkBinding = null!;
+
+        _columnView.Dispose();
+        _box.Dispose();
+
         _checkFactory.Dispose();
         _nameFactory.Dispose();
         _versionFactory.Dispose();
 
-        _columnView = null!;
-        _box = null!;
-        _selectionModel = null!;
-        _listStore = null!;
-        _filterListModel = null!;
-        _filter = null!;
-
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+        _packageGObjectRefs.Clear();
     }
 
     private async Task LoadDataAsync(CancellationToken ct = default)
@@ -202,12 +203,14 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
             GLib.Functions.IdleAdd(0, () =>
             {
                 _listStore.RemoveAll();
+                _packageGObjectRefs.Clear();
                 foreach (var gobject in packages.Select(dto => new AurUpdateGObject()
                          {
                              Package = dto,
                              IsSelected = false
                          }))
                 {
+                    _packageGObjectRefs.Add(gobject);
                     _listStore.Append(gobject);
                 }
 

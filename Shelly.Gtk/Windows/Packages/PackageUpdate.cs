@@ -1,8 +1,10 @@
+using GObject;
 using Gtk;
 using Shelly.Gtk.Helpers;
 using Shelly.Gtk.Services;
 using Shelly.Gtk.UiModels;
 using Shelly.Gtk.UiModels.PackageManagerObjects.GObjects;
+// ReSharper disable CollectionNeverQueried.Local
 
 namespace Shelly.Gtk.Windows.Packages;
 
@@ -15,12 +17,13 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
     private FilterListModel _filterListModel = null!;
     private CustomFilter _filter = null!;
     private string _searchText = string.Empty;
-    private Dictionary<ListItem, EventHandler> _checkBinding = [];
+    private Dictionary<ListItem, (SignalHandler<CheckButton> OnToggled, EventHandler OnExternalToggle)> _checkBinding = [];
     private SignalListItemFactory _checkFactory = null!;
     private SignalListItemFactory _nameFactory = null!;
     private SignalListItemFactory _oldVersionFactory = null!;
     private SignalListItemFactory _sizeDiffFactory = null!;
     private SignalListItemFactory _versionFactory = null!;
+    private readonly List<AlpmUpdateGObject> _packageGObjectRefs = [];
 
     public Widget CreateWindow()
     {
@@ -78,14 +81,6 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
             var listItem = (ListItem)args.Object;
             var check = new CheckButton { MarginStart = 10, MarginEnd = 10 };
             listItem.SetChild(check);
-            
-            check.OnToggled += (s, _) =>
-            {
-                if (listItem.GetItem() is AlpmUpdateGObject pkgObj)
-                {
-                    pkgObj.IsSelected = s.GetActive();
-                }
-            };
         };
 
         _checkFactory.OnBind += (_, args) =>
@@ -95,10 +90,17 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
                 listItem.GetChild() is not CheckButton checkButton) return;
 
             checkButton.SetActive(pkgObj.IsSelected);
+            checkButton.OnToggled += OnToggled;
 
             pkgObj.OnSelectionToggled += OnExternalToggle;
-            _checkBinding[listItem] = OnExternalToggle;
+            _checkBinding[listItem] = (OnToggled, OnExternalToggle);
+
             return;
+
+            void OnToggled(CheckButton s, EventArgs e)
+            {
+                pkgObj.IsSelected = s.GetActive();
+            }
 
             void OnExternalToggle(object? s, EventArgs e)
             {
@@ -112,9 +114,12 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
         _checkFactory.OnUnbind += (_, args) =>
         {
             var listItem = (ListItem)args.Object;
-            if (listItem.GetItem() is not AlpmPackageGObject pkgObj) return;
-            if (_checkBinding.Remove(listItem, out var handler))
-                pkgObj.OnSelectionToggled -= handler;
+            if (listItem.GetItem() is not AlpmUpdateGObject pkgObj || listItem.GetChild() is not CheckButton checkButton) return;
+            if (_checkBinding.Remove(listItem, out var handlers))
+            {
+                pkgObj.OnSelectionToggled -= handlers.OnExternalToggle;
+                checkButton.OnToggled -= handlers.OnToggled;
+            }
         };
         checkColumn.SetFactory(_checkFactory);
         
@@ -206,9 +211,12 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
             GLib.Functions.IdleAdd(0, () =>
             {
                 _listStore.RemoveAll();
+                _packageGObjectRefs.Clear();
                 foreach (var package in packages)
                 {
-                    _listStore.Append(new AlpmUpdateGObject { Package = package });
+                    var pkgObj = new AlpmUpdateGObject { Package = package };
+                    _packageGObjectRefs.Add(pkgObj);
+                    _listStore.Append(pkgObj);
                 }
                 return false;
             });
@@ -288,18 +296,10 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
 
     public void Dispose()
     {
-        _columnView.Dispose();
         _columnView.SetModel(null);
-        
-        for (uint i = 0; i < _listStore.GetNItems(); i++)
-        {
-            if (_listStore.GetObject(i) is not AlpmUpdateGObject pkgObj) continue;
-            pkgObj.Package = null;
-            pkgObj.Dispose();
-        }
 
         _listStore.RemoveAll();
-        
+
         _searchText = string.Empty;
 
         _selectionModel.Dispose();
@@ -309,17 +309,16 @@ public class PackageUpdate(IPrivilegedOperationService privilegedOperationServic
 
         _checkBinding.Clear();
         _checkBinding = null!;
-        
+
+        _columnView.Dispose();
         _box.Dispose();
-        
+
         _checkFactory.Dispose();
         _nameFactory.Dispose();
         _oldVersionFactory.Dispose();
         _sizeDiffFactory.Dispose();
         _versionFactory.Dispose();
 
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+        _packageGObjectRefs.Clear();
     }
 }

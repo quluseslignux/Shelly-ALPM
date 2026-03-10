@@ -5,6 +5,7 @@ using Shelly.Gtk.Services;
 using Shelly.Gtk.UiModels;
 using Shelly.Gtk.UiModels.PackageManagerObjects.GObjects;
 using Shelly.Gtk.Windows.Dialog;
+// ReSharper disable CollectionNeverQueried.Local
 
 namespace Shelly.Gtk.Windows;
 
@@ -34,6 +35,7 @@ public class MetaSearch(
     private ColumnViewColumn _descriptionColumn = null!;
 
     private Dictionary<ListItem, EventHandler> _checkBinding = [];
+    private readonly List<MetaPackageGObject> _packageGObjectRefs = [];
 
     public Widget CreateWindow() => CreateWindow(null);
 
@@ -238,9 +240,12 @@ public class MetaSearch(
         GLib.Functions.IdleAdd(0, () =>
         {
             _listStore.RemoveAll();
+            _packageGObjectRefs.Clear();
             foreach (var model in models)
             {
-                _listStore.Append(new MetaPackageGObject { Package = model });
+                var pkgObj = new MetaPackageGObject { Package = model };
+                _packageGObjectRefs.Add(pkgObj);
+                _listStore.Append(pkgObj);
             }
 
             return false;
@@ -291,50 +296,31 @@ public class MetaSearch(
 
     public void Dispose()
     {
-        // Disconnect the model from the view to break circular refs
         _columnView.SetModel(null);
-
-        // Dispose all GObject items BEFORE removing them
-        for (uint i = 0; i < _listStore.GetNItems(); i++)
-        {
-            if (_listStore.GetObject(i) is MetaPackageGObject pkgObj)
-            {
-                pkgObj.Package = null;
-                pkgObj.Dispose();
-            }
-        }
 
         _listStore.RemoveAll();
 
         _selectionModel.Dispose();
         _listStore.Dispose();
 
-        _checkFactory.Dispose();
-        _nameFactory.Dispose();
-        _repoFactory.Dispose();
-        _versionFactory.Dispose();
+        _checkBinding.Clear();
+        _checkBinding = null!;
+
         _checkColumn.Dispose();
         _nameColumn.Dispose();
         _repoColumn.Dispose();
         _descriptionColumn.Dispose();
         _versionColumn.Dispose();
 
+        _columnView.Dispose();
+        _box.Dispose();
 
-        _checkBinding.Clear();
+        _checkFactory.Dispose();
+        _nameFactory.Dispose();
+        _repoFactory.Dispose();
+        _versionFactory.Dispose();
+        _descriptionFactory.Dispose();
 
-        _columnView = null!;
-        _box = null!;
-        _selectionModel = null!;
-        _listStore = null!;
-        _installButton = null!;
-        _checkFactory = null!;
-        _nameFactory = null!;
-        _repoFactory = null!;
-        _versionFactory = null!;
-        _descriptionFactory = null!;
-
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+        _packageGObjectRefs.Clear();
     }
 }
