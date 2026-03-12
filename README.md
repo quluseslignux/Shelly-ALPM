@@ -4,7 +4,7 @@
 
 <p align="center">
   Search Standard Packages, AUR, and Flatpak in one place
-  
+
  <img width="1372" height="1019" alt="image" src="https://github.com/user-attachments/assets/6aa86662-d9f6-4d3c-9164-9df5d05257b3" />
   <img width="1768" height="1177" alt="image" src="https://github.com/user-attachments/assets/8e9d851b-a3a0-4aaf-b91a-b3b3c3ec7f6d" />
   <img width="1768" height="1177" alt="image" src="https://github.com/user-attachments/assets/cc2a8d31-e5c9-42d4-ba87-db25e10a1110" />
@@ -21,7 +21,7 @@ interacts with their Arch Linux system, providing a more streamlined and intuiti
 
 ## Quick Install
 
-Recommended install for Shelly is for CachyOS or using CachyOS packages
+The recommended installation method for Shelly is for CachyOS or using CachyOS packages
 
 ```bash
 sudo pacman -S shelly
@@ -40,12 +40,25 @@ or
 ```bash
 paru -S shelly
 ```
+
 ## Uninstall
 
-To uninstall the quick installer version is you wish to switch to the AUR managed version:
+#### For standard package removal
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ZoeyErinBauer/Shelly-ALPM/master/uninstall.sh | sudo bash
+sudo pacman -Rns shelly
+```
+
+#### If installed from AUR
+
+```bash
+yay -Rns shelly
+```
+
+or
+
+```bash
+paru -Rns shelly
 ```
 
 ## Features
@@ -53,7 +66,7 @@ curl -fsSL https://raw.githubusercontent.com/ZoeyErinBauer/Shelly-ALPM/master/un
 - **Modern-CLI**: Provides a command-line interface for advanced users and automation, with a focus on ease of use.
 - **Native Arch Integration**: Directly interacts with `libalpm` for accurate and fast package management.
 - **Native Wayland Support**: Front end built using GTK4.
-- **Package Management**: Supports searching for, installing, updating, and removing packages.
+- **Package Management**: Supports searching and filtering for, installing, updating, and removing packages.
 - **Repository Management**: Synchronizes with official repositories to keep package lists up to date.
 - **AUR Support**: Integration with the Arch User Repository for a wider range of software.
 - **Flatpak Support**: Manage Flatpak applications alongside native packages.
@@ -62,16 +75,26 @@ curl -fsSL https://raw.githubusercontent.com/ZoeyErinBauer/Shelly-ALPM/master/un
 
 Upcoming features and development targets:
 
+- **Trigger updates from Notifications**: Allow users to trigger package updates from the notification system.
 - **Repository Modification**: Allow modification of supported repositories (In progress).
-- **Package Grouping**: Group related packages for easier management. (In progress)
-- **Shelly Sync**: Multi-system sync lists that keep packages together across computers (In progress)
+- **App Image Support**: Further app image support similar to [AppLever](https://github.com/mijorus/gearlever). (In
+  progress)
+- **Flatpak Overhaul**: Improve Flatpak integration and management. Allow for management of flatpak app stream
+  locations. (In progress)
+- **Package Import**: Allow for import of a previously existing package list to bring the system back to a saved package
+  state. (Not yet started)
+- **Icons for Standard Packages**: Allow icons for standard package applications to be viewed while searching for 
+  packages. (Architecting)
 
 ## Prerequisites
 
 - **Arch Linux** (or an Arch-based distribution)
-- **.NET 10.0 Runtime** (for running only if installed from non *-bin aur package)
 - **.NET 10.0 SDK** (for building)
 - **libalpm** (provided by `pacman`)
+
+#### Optional Prerequisites
+
+- **Flatpak**: Can be installed via shelly inside settings by turning flatpak on.
 
 ## Installation
 
@@ -95,7 +118,7 @@ dotnet publish Shelly-CLI/Shelly-CLI.csproj -C Release -o publish/shelly-cli
 dotnet publish Shelly-CLI/Shelly-CLI.csproj -C Release -o publish/shelly-notifications
 ```
 
-alternatively you can run
+alternatively, you can run
 
 ```bash
 sudo ./local-install.sh
@@ -103,17 +126,30 @@ sudo ./local-install.sh
 
 This will build and perform the functions of install.sh
 
-The binary will be located in the `/publish/shelly-ui/` directory.
+The binary will be located in the `/opt/shelly` directory.
 
 ## Usage
 
-Run the application from your terminal or application launcher:
+Run the application from your terminal:
+
+For ui:
 
 ```bash
 shelly-ui
 ```
 
-In it's install location or by opening it from your applications menu.
+For cli:
+
+```bash
+shelly
+```
+
+Notifications will be started with the ui, or it can be configured to launch at startup using your systems startup
+configuration to run:
+
+```bash
+shelly-notifications
+```
 
 ## Shelly-CLI
 
@@ -285,6 +321,6 @@ dotnet test
 
 ## License
 
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GPL-3.0 License – see the [LICENSE](LICENSE) file for details.
 
 
