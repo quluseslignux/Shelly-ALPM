@@ -17,6 +17,7 @@ namespace PackageManager.Flatpak;
 [JsonSerializable(typeof(AppstreamScreenshot))]
 [JsonSerializable(typeof(AppstreamImage))]
 [JsonSerializable(typeof(AppstreamRelease))]
+[JsonSerializable(typeof(FlatpakRemoteRefInfo))]
 public partial class AppstreamJsonContext : JsonSerializerContext
 {
 }

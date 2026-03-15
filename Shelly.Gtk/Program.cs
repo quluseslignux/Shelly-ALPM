@@ -215,6 +215,15 @@ sealed class Program
                     return false;
                 });
             };
+            
+            genericQuestionService.Dialog += (s, e) =>
+            {
+                GLib.Functions.IdleAdd(0, () =>
+                {
+                    GenericOverlay.ShowGenericOverlay(mainOverlay, e.Box, e);
+                    return false;
+                });
+            };
 
 
             window.Show();

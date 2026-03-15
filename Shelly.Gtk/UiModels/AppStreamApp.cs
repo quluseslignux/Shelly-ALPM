@@ -1,7 +1,7 @@
+namespace Shelly.Gtk.UiModels;
+
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
-
-namespace PackageManager.Flatpak;
 
 /// <summary>
 /// Represents an application from Flatpak appstream metadata

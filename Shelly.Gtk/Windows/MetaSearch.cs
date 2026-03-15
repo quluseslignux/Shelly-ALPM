@@ -293,7 +293,9 @@ public class MetaSearch(
             {
                 foreach (var pkg in flatpak)
                 {
-                    await unprivilegedOperationService.InstallFlatpakPackage(pkg);
+                    //TODO: This evnetually needs to work with everything else but this page only works with flathub atm
+                    //This can be a future improvment we can make on this page...
+                   await unprivilegedOperationService.InstallFlatpakPackage(pkg,false,"flathub","stable");
                 }
             }
         }
