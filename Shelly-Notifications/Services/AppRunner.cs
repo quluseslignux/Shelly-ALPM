@@ -49,10 +49,12 @@ public static class AppRunner
         var process = Process.Start(new ProcessStartInfo
         {
             FileName = terminal,
-            Arguments = $"{command}",
+            Arguments = $"-e bash -c \"{command}\"",
             UseShellExecute = false,
         });
-
+        
+        //auuuugh default to alacritty could spawn shelly maybe once we have a better home page that update 
+        //all or maybe we can just give notification 
         await process!.WaitForExitAsync();
     }
 }
