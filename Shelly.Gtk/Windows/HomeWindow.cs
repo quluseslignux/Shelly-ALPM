@@ -16,6 +16,7 @@ public class HomeWindow(
     IPrivilegedOperationService privilegedOperationService,
     IUnprivilegedOperationService unprivilegedOperationService,
     IConfigService configService,
+    ILockoutService lockoutService,
     MetaSearch metaSearch) : IShellyWindow
 {
     private Box _box = null!;
@@ -101,11 +102,16 @@ public class HomeWindow(
     {
         try
         {
+            lockoutService.Show("Upgrading all packages...");
             await privilegedOperationService.UpgradeAllAsync();
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
+        }
+        finally
+        {
+            lockoutService.Hide();
         }
     }
 
