@@ -242,19 +242,25 @@ public class AurRemove(
                 }
             }
 
+
             try
             {
-                lockoutService.Show($"Installing...");
-                
-                try
+                lockoutService.Show($"Removing...");
+                //do work
+                var result =
+                    await privilegedOperationService.RemoveAurPackagesAsync(selectedPackages,
+                        _cascadeDeleteCheck.Active);
+                if (!result.Success)
                 {
-                    //do work
-                    var result = await privilegedOperationService.RemoveAurPackagesAsync(selectedPackages, _cascadeDeleteCheck.Active);
-                    if (!result.Success)
-                    {
-                        Console.WriteLine($"Failed to remove packages: {result.Error}");
-                    }
-
+                    Console.WriteLine($"Failed to remove packages: {result.Error}");
+                }
+                else
+                {
+                    var args = new ToastMessageEventArgs(
+                        $"Updated {selectedPackages.Count} Package(s)"
+                    );
+                    genericQuestionService.RaiseToastMessage(args);
+                }
                 await LoadDataAsync();
             }
             catch (Exception e)
@@ -265,6 +271,8 @@ public class AurRemove(
             {
                 lockoutService.Hide();
             }
+
+           
         }
     }
 
